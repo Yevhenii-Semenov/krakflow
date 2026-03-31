@@ -1,91 +1,83 @@
 import 'package:flutter/material.dart';
+import 'task_repository.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class Task {
-  final String title;
-  final String deadline;
-  final bool done;
-  final String priority;
-
-  const Task({
-    required this.title,
-    required this.deadline,
-    required this.done,
-    required this.priority,
-  });
-}
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  final List<Task> tasks = const [
-    Task(
-      title: "Przygotować prezentację",
-      deadline: "jutro",
-      done: true,
-      priority: "wysoki",
-    ),
-    Task(
-      title: "Oddać raport z laboratoriów",
-      deadline: "dzisiaj",
-      done: false,
-      priority: "wysoki",
-    ),
-    Task(
-      title: "Powtórzyć widgety Flutter",
-      deadline: "w piątek",
-      done: true,
-      priority: "średni",
-    ),
-    Task(
-      title: "Napisać notatki do kolokwium",
-      deadline: "w weekend",
-      done: false,
-      priority: "niski",
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: HomeScreen(),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  Widget build(BuildContext context) {
+    final tasks = TaskRepository.tasks;
     final int doneCount = tasks.where((task) => task.done).length;
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text("KrakFlow"),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("KrakFlow"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Masz dziś ${tasks.length} zadania, wykonano $doneCount",
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Dzisiejsze zadania",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView(
+                children: tasks.map((task) {
+                  return TaskCard(task: task);
+                }).toList(),
+              ),
+            ),
+          ],
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Masz dziś ${tasks.length} zadania, wykonano $doneCount",
-                style: const TextStyle(fontSize: 18),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Dzisiejsze zadania",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView(
-                  children: tasks.map((task) {
-                    return TaskCard(task: task);
-                  }).toList(),
-                ),
-              ),
-            ],
-          ),
-        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final Task? newTask = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddTaskScreen(),
+            ),
+          );
+
+          if (newTask != null) {
+            setState(() {
+              TaskRepository.tasks.add(newTask);
+            });
+          }
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -113,6 +105,68 @@ class TaskCard extends StatelessWidget {
         ),
         subtitle: Text(
           "termin: ${task.deadline} | priorytet: ${task.priority}",
+        ),
+      ),
+    );
+  }
+}
+
+class AddTaskScreen extends StatelessWidget {
+  AddTaskScreen({super.key});
+
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController deadlineController = TextEditingController();
+  final TextEditingController priorityController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Nowe zadanie"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(
+                labelText: "Tytuł zadania",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: deadlineController,
+              decoration: const InputDecoration(
+                labelText: "Termin",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: priorityController,
+              decoration: const InputDecoration(
+                labelText: "Priorytet",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                final newTask = Task(
+                  title: titleController.text,
+                  deadline: deadlineController.text,
+                  done: false,
+                  priority: priorityController.text,
+                );
+
+                Navigator.pop(context, newTask);
+              },
+              child: const Text("Zapisz"),
+            ),
+          ],
         ),
       ),
     );
